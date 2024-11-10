@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@peerprep/ui/tabs";
 import { Textarea } from "@peerprep/ui/text-input";
 import { useAuth, useRoom } from "@peerprep/utils/client";
-import { BotMessageSquare, Send, Tags } from "lucide-react";
+import { BotMessageSquare, Lock, Send, Tags } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
@@ -44,12 +44,6 @@ interface ChatMessageGroupType<AI extends boolean = boolean> {
   messages: ChatMessageType<AI>[];
 }
 
-const ydoc = new Y.Doc();
-const yCodeContent = ydoc.getText("monaco");
-const yLanguage = ydoc.getText("language");
-const yChatMessages = ydoc.getArray<Y.Map<string>>("chatMessages");
-const yAIChatMessages = ydoc.getArray<Y.Map<string>>("aIChatMessages");
-
 const [PageDataProvider, usePageData] = generateContext<{ user: User; room: Room }>("room data");
 
 function getTagString(tags: string[]) {
@@ -57,7 +51,7 @@ function getTagString(tags: string[]) {
   return tags.join(", ");
 }
 
-function useHocuspocus() {
+function useInitialiseHocuspocus() {
   const { user, room } = usePageData();
 
   const [isReady, setReady] = useState(false);
@@ -65,12 +59,19 @@ function useHocuspocus() {
   const collaboratorIsOnline = useDebounce(false, rawCollaboratorIsOnline);
   const [stylesheets, setStylesheets] = useState<string[]>([]);
   const [chatPending, setChatPending] = useState(false);
-  const [provider] = useState(() => {
+  const [readOnly, setReadOnly] = useState(true);
+  const [{ provider, ...documents }] = useState(() => {
+    const ydoc = new Y.Doc();
+    const yCodeContent = ydoc.getText("monaco");
+    const yLanguage = ydoc.getText("language");
+    const yChatMessages = ydoc.getArray<Y.Map<string>>("chatMessages");
+    const yAIChatMessages = ydoc.getArray<Y.Map<string>>("aIChatMessages");
+
     const provider = new HocuspocusProvider({
-      url: `ws://localhost:${env.VITE_COLLABORATION_SERVICE_PORT}`,
+      url: `${env.VITE_SELF_HOST ? "wss://peerprep.joulev.dev" : "ws://localhost:3000"}/api/collaboration/collab/${room.id}`,
       name: room.id,
       document: ydoc,
-      token: "dummy, required because hocuspocus needs it but we don't do anything with it",
+      token: "dummy token",
     });
     provider.setAwarenessField("user", {
       username: user.username,
@@ -106,11 +107,23 @@ function useHocuspocus() {
       const decoded = JSON.parse(payload) as StatelessMessage;
       if (decoded.type === "chat" && decoded.userId !== user.id) setChatPending(true);
     });
-    return provider;
+    provider.on("authenticated", () =>
+      setReadOnly(room.alreadyStale || provider.authorizedScope === "readonly"),
+    );
+    return {
+      provider,
+      ydoc,
+      yCodeContent,
+      yLanguage,
+      yChatMessages,
+      yAIChatMessages,
+    };
   });
 
   return {
     provider,
+    ...documents,
+    readOnly: !isReady || (isReady && readOnly),
     isReady,
     collaboratorIsOnline,
     stylesheets,
@@ -119,60 +132,77 @@ function useHocuspocus() {
   };
 }
 
+const [HocuspocusInstanceProvider, useHocuspocus] =
+  generateContext<ReturnType<typeof useInitialiseHocuspocus>>("hocuspocus");
+
 function Navbar() {
   const { user, room } = usePageData();
-  const { collaboratorIsOnline } = useHocuspocus();
+  const { isReady, readOnly, collaboratorIsOnline } = useHocuspocus();
   const collaborator = room.users[0].id === user.id ? room.users[1] : room.users[0];
   return (
-    <nav className="flex flex-row justify-between p-6">
-      <div className="flex flex-row items-center gap-6">
-        <NavLogo />
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-semibold text-white">
-            <Link href={room.question.leetCodeLink}>{room.question.title}</Link>
-          </h1>
-          <div className="flex flex-row items-center gap-6">
-            <QuestionDifficultyLabel difficulty={room.question.difficulty} />
-            <div className="text-main-500 flex flex-row items-center gap-1.5 text-sm">
-              <Tags />
-              <span>{getTagString(room.question.tags)}</span>
+    <div className="flex flex-col">
+      {(readOnly && isReady) || room.alreadyStale ? (
+        <div className="bg-main-900 text-main-300 -mx-6 flex flex-row items-center justify-center gap-2 px-12 py-1.5 text-sm">
+          <Lock />
+          After 6 hours of inactivity, this room has been locked and is now read-only.
+          <LinkButton
+            href="/"
+            className="w-auto"
+            variants={{ size: "sm", variant: "secondary" }}
+            forceNativeAnchor
+          >
+            Start matching
+          </LinkButton>
+        </div>
+      ) : null}
+      <nav className="flex flex-row justify-between p-6">
+        <div className="flex flex-row items-center gap-6">
+          <NavLogo forceNativeAnchor />
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-semibold text-white">
+              <Link href={room.question.leetCodeLink}>{room.question.title}</Link>
+            </h1>
+            <div className="flex flex-row items-center gap-6">
+              <QuestionDifficultyLabel difficulty={room.question.difficulty} />
+              <div className="text-main-500 flex flex-row items-center gap-1.5 text-sm">
+                <Tags />
+                <span>{getTagString(room.question.tags)}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className="flex flex-row items-center gap-9">
-        <div className="flex flex-col gap-1">
-          <span className="text-main-500 text-xs uppercase">Collaborator</span>
-          <div className="flex flex-row items-center gap-3">
-            <Avatar
-              imageUrl={collaborator.imageUrl}
-              username={collaborator.username}
-              className="size-9 border-4 border-amber-500"
-            />
-            <div className="flex flex-col">
-              <span className="text-sm">@{collaborator.username}</span>
-              {collaboratorIsOnline ? (
-                <span className="text-xs text-emerald-500">Online</span>
-              ) : (
-                <span className="text-main-500 text-xs">Offline</span>
-              )}
+        <div className="flex flex-row items-center gap-9">
+          <div className="flex flex-col gap-1">
+            <span className="text-main-500 text-xs uppercase">Collaborator</span>
+            <div className="flex flex-row items-center gap-3">
+              <Avatar
+                imageUrl={collaborator.imageUrl}
+                username={collaborator.username}
+                className="size-9 border-4 border-amber-500"
+              />
+              <div className="flex flex-col">
+                <span className="text-sm">@{collaborator.username}</span>
+                {collaboratorIsOnline ? (
+                  <span className="text-xs text-emerald-500">Online</span>
+                ) : (
+                  <span className="text-main-500 text-xs">Offline</span>
+                )}
+              </div>
             </div>
           </div>
+          <NavAvatar />
         </div>
-        <LinkButton href="/" variants={{ variant: "secondary" }} className="w-fit">
-          End session
-        </LinkButton>
-        <NavAvatar />
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }
 
 function LanguageSelector() {
-  const { isReady } = useHocuspocus();
+  const { isReady, readOnly, ydoc, yLanguage } = useHocuspocus();
   const language = useY(yLanguage) as unknown as string;
   return (
     <Select
+      disabled={readOnly}
       value={isReady ? language || "javascript" : undefined}
       onValueChange={value => {
         ydoc.transact(() => {
@@ -268,7 +298,8 @@ function ChatMessageGroup({ group }: { group: ChatMessageGroupType }) {
 function ChatMessageBox({ ai = false }: { ai?: boolean }) {
   const [message, setMessage] = useState("");
   const { user } = usePageData();
-  const { provider } = useHocuspocus();
+  const { provider, readOnly, ydoc, yAIChatMessages, yChatMessages } = useHocuspocus();
+  const disabled = readOnly || !message.trim();
   function submit() {
     const content = message.trim();
     if (!content) return;
@@ -304,7 +335,10 @@ function ChatMessageBox({ ai = false }: { ai?: boolean }) {
     >
       <Textarea
         className="h-24 resize-none border-none"
-        placeholder="Say something"
+        placeholder={
+          readOnly ? "This room has been locked and this channel is read-only." : "Say something"
+        }
+        disabled={readOnly}
         value={message}
         onValueChange={setMessage}
         onKeyDown={e => {
@@ -320,7 +354,7 @@ function ChatMessageBox({ ai = false }: { ai?: boolean }) {
         </div>
         <Button
           type="submit"
-          disabled={!message.trim()}
+          disabled={disabled}
           className="w-auto"
           variants={{ variant: "primary", size: "sm" }}
         >
@@ -367,7 +401,7 @@ function groupChatMessages(chatMessages: ChatMessageType[]): ChatMessageGroupTyp
 }
 
 function Chat({ ai = false }: { ai?: boolean }) {
-  const { isReady } = useHocuspocus();
+  const { isReady, yAIChatMessages, yChatMessages } = useHocuspocus();
   const chatMessages = useY(ai ? yAIChatMessages : yChatMessages);
   const groupedChatMessages = useMemo(
     () => groupChatMessages(chatMessages as unknown as ChatMessageType[]),
@@ -388,7 +422,8 @@ function Chat({ ai = false }: { ai?: boolean }) {
 
 function MainRoomPage() {
   const { room } = usePageData();
-  const { provider, stylesheets, chatPending, clearChatPending } = useHocuspocus();
+  const { provider, readOnly, stylesheets, chatPending, clearChatPending, yCodeContent } =
+    useHocuspocus();
   const [tab, setTab] = useState("problem");
   return (
     <div className="flex h-screen w-screen flex-col px-6">
@@ -447,6 +482,7 @@ function MainRoomPage() {
               theme="vs-dark"
               defaultLanguage="javascript"
               defaultValue="// some comment"
+              options={{ readOnly }}
               onMount={editor => {
                 const editorModel = editor.getModel();
                 if (!editorModel)
@@ -461,6 +497,11 @@ function MainRoomPage() {
   );
 }
 
+function HocuspocusInstanceProviderWrapper({ children }: { children: React.ReactNode }) {
+  const hocuspocus = useInitialiseHocuspocus();
+  return <HocuspocusInstanceProvider value={hocuspocus}>{children}</HocuspocusInstanceProvider>;
+}
+
 export default function RoomPage() {
   const { id } = useParams<{ id: string }>();
   if (!id) throw new Error("invariant: id is undefined");
@@ -472,7 +513,9 @@ export default function RoomPage() {
   if (!user || !room) return null;
   return (
     <PageDataProvider value={{ user, room }}>
-      <MainRoomPage />
+      <HocuspocusInstanceProviderWrapper>
+        <MainRoomPage />
+      </HocuspocusInstanceProviderWrapper>
     </PageDataProvider>
   );
 }

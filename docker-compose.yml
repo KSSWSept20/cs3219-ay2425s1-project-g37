@@ -31,12 +31,9 @@ services:
     container_name: user
     restart: always
     environment:
-      - PORT=${VITE_USER_SERVICE_PORT}
       - DATABASE_URL=mongodb://root:root@mongo:27017/peerprep?authSource=admin&replicaSet=rs0&retryWrites=true&w=majority&directConnection=true
-    ports:
-      - ${VITE_USER_SERVICE_PORT}:${VITE_USER_SERVICE_PORT}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${VITE_USER_SERVICE_PORT}/status"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
       interval: 5s
       timeout: 15s
       start_period: 15s
@@ -54,12 +51,9 @@ services:
     container_name: questions
     restart: always
     environment:
-      - PORT=${VITE_QUESTION_SERVICE_PORT}
       - DATABASE_URL=mongodb://root:root@mongo:27017/peerprep?authSource=admin&replicaSet=rs0&retryWrites=true&w=majority&directConnection=true
-    ports:
-      - ${VITE_QUESTION_SERVICE_PORT}:${VITE_QUESTION_SERVICE_PORT}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${VITE_QUESTION_SERVICE_PORT}/status"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
       interval: 5s
       timeout: 15s
       start_period: 15s
@@ -77,12 +71,9 @@ services:
     container_name: matching
     restart: always
     environment:
-      - PORT=${VITE_MATCHING_SERVICE_PORT}
       - DATABASE_URL=mongodb://root:root@mongo:27017/peerprep?authSource=admin&replicaSet=rs0&retryWrites=true&w=majority&directConnection=true
-    ports:
-      - ${VITE_MATCHING_SERVICE_PORT}:${VITE_MATCHING_SERVICE_PORT}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${VITE_MATCHING_SERVICE_PORT}/status"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
       interval: 5s
       timeout: 15s
       start_period: 15s
@@ -100,12 +91,9 @@ services:
     container_name: collaboration
     restart: always
     environment:
-      - PORT=${VITE_COLLABORATION_SERVICE_PORT}
       - DATABASE_URL=mongodb://root:root@mongo:27017/peerprep?authSource=admin&replicaSet=rs0&retryWrites=true&w=majority&directConnection=true
-    ports:
-      - ${VITE_COLLABORATION_SERVICE_PORT}:${VITE_COLLABORATION_SERVICE_PORT}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${VITE_COLLABORATION_SERVICE_PORT}/status"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/status"]
       interval: 5s
       timeout: 15s
       start_period: 15s
@@ -122,10 +110,6 @@ services:
         - SERVICE_DIRECTORY=apps/peerprep
     container_name: frontend
     restart: always
-    environment:
-      - PORT=${VITE_PEERPREP_FRONTEND_PORT}
-    ports:
-      - ${VITE_PEERPREP_FRONTEND_PORT}:${VITE_PEERPREP_FRONTEND_PORT}
     networks:
       - webnet
 
@@ -138,10 +122,30 @@ services:
         - SERVICE_DIRECTORY=apps/admin-portal
     container_name: admin-portal
     restart: always
-    environment:
-      - PORT=${VITE_PEERPREP_QUESTION_SPA_PORT}
+    networks:
+      - webnet
+
+  nginx:
+    build:
+      context: docker/nginx
+      dockerfile: Dockerfile
+      args:
+        - VITE_SELF_HOST=${VITE_SELF_HOST}
+    container_name: api-gateway
     ports:
-      - ${VITE_PEERPREP_QUESTION_SPA_PORT}:${VITE_PEERPREP_QUESTION_SPA_PORT}
+      - "3000:3000"
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - user
+      - questions
+      - matching
+      - collaboration
+      - frontend
+      - admin-portal
+    volumes:
+      - ${CERT_PATH:-/dev/null}:/etc/ssl/certs/cert.pem:ro
+      - ${KEY_PATH:-/dev/null}:/etc/ssl/private/key.pem:ro
     networks:
       - webnet
 

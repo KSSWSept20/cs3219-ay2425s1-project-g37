@@ -1,7 +1,7 @@
 import { Prisma, db } from "@peerprep/db";
 import { env } from "@peerprep/env";
-import type { NewUser, UpdateUser, User } from "@peerprep/schemas";
-import { ExpectedError, decorateUser } from "@peerprep/utils/server";
+import type { NewUser, Room, UpdateUser, User } from "@peerprep/schemas";
+import { ExpectedError, decorateUser, roomIsStale, stripUser } from "@peerprep/utils/server";
 import { StatusCodes } from "http-status-codes";
 
 export async function createUser({ adminSignUpToken, ...user }: NewUser) {
@@ -49,4 +49,19 @@ export async function updateUserPrivilege(id: string, isAdmin: boolean) {
 export async function deleteUser(id: string) {
   const user = await db.user.delete({ where: { id } });
   if (!user) throw new ExpectedError(`User ${id} not found`, StatusCodes.NOT_FOUND);
+}
+
+export async function getMatchingHistory(userId: string): Promise<Room[]> {
+  const rooms = await db.room.findMany({
+    where: { userIds: { has: userId } },
+    orderBy: { createdAt: "desc" },
+    include: { users: true, question: true },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return rooms.map(({ userIds, users, ydoc, ...rest }) => ({
+    ...rest,
+    userIds: [userIds[0], userIds[1]],
+    users: [stripUser(decorateUser(users[0])), stripUser(decorateUser(users[1]))],
+    alreadyStale: roomIsStale(rest),
+  }));
 }

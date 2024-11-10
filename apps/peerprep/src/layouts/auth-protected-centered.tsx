@@ -10,7 +10,7 @@ export default function AuthProtectedCenteredLayout() {
         <NavLogo />
         <NavAvatar />
       </nav>
-      <main>
+      <main className="container py-6 pb-12">
         <Outlet />
       </main>
     </div>

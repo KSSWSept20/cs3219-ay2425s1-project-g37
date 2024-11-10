@@ -19,6 +19,7 @@ import { NavLogo } from "~/components/nav-logo";
 function NavAvatar() {
   const { data: user } = useAuth();
   const { trigger } = useLogout();
+
   if (!user) return null;
   return (
     <DropdownMenu>
@@ -35,15 +36,28 @@ function NavAvatar() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href={getOrigin("frontend")}>
+            <Link href={getOrigin("frontend")} className="flex w-full items-center justify-between">
               PeerPrep app
               <ArrowUpRight />
             </Link>
           </DropdownMenuItem>
-          {/* TODO */}
-          <DropdownMenuItem>
-            User settings
-            <ArrowUpRight />
+          <DropdownMenuItem asChild>
+            <Link
+              href={`${getOrigin("frontend")}/profile/settings`}
+              className="flex w-full items-center justify-between"
+            >
+              User settings
+              <ArrowUpRight />
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link
+              href={`${getOrigin("frontend")}/profile/history`}
+              className="flex w-full items-center justify-between"
+            >
+              History
+              <ArrowUpRight />
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

@@ -318,10 +318,6 @@ if (!email.includes("nus.edu")) {
 
 `ServiceResponseBody<T>` is simply the merger of the above two types: the JSON type of all responses from the microservices.
 
-### `elysiaCorsPlugin`
-
-This plugin handles [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS). It should be leave as-is and used in all microservices.
-
 ### `elysiaFormatResponsePlugin`
 
 This plugin uses Elysia hooks to ensure that all responses and errors are transformed into the valid response type with the body being `ServiceResponseBody<T>` documented above.

@@ -14,7 +14,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@elysiajs/cors": "1.1.1",
     "@elysiajs/jwt": "1.1.1",
     "@peerprep/db": "workspace:*",
     "@peerprep/env": "workspace:*",

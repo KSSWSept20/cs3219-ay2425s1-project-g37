@@ -21,6 +21,8 @@ export interface Room extends NewRoom {
   // ydoc: Uint8Array | null;
   users: [SafeUser, SafeUser];
   question: Question;
+  staledAt: Date | null;
+  alreadyStale: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

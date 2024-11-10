@@ -1,4 +1,3 @@
-import cors from "@elysiajs/cors";
 import { jwt } from "@elysiajs/jwt";
 import { db } from "@peerprep/db";
 import { env } from "@peerprep/env";
@@ -34,17 +33,6 @@ class ServiceResponse<T = unknown> extends Response {
     });
   }
 }
-
-export const elysiaCorsPlugin = new Elysia({ name: "cors" }).use(
-  cors({
-    origin: [
-      `http://localhost:${env.VITE_PEERPREP_FRONTEND_PORT}`,
-      `http://localhost:${env.VITE_PEERPREP_QUESTION_SPA_PORT}`,
-      /^https?:\/\/(\w+-)?peerprep\.joulev\.dev.*$/,
-    ],
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD"],
-  }),
-);
 
 export const elysiaFormatResponsePlugin = new Elysia({ name: "handle-error" })
   .error({ ExpectedError })
@@ -89,6 +77,18 @@ export function decorateUser(user: Omit<User, "imageUrl">): User {
     ...user,
     imageUrl: `https://www.gravatar.com/avatar/${new Bun.CryptoHasher("sha256").update(user.email.toLowerCase()).digest("hex")}?d=identicon&size=256`,
   };
+}
+
+export function stripUser({ id, imageUrl, isAdmin, username }: User) {
+  return { id, imageUrl, isAdmin, username };
+}
+
+const EARLIEST_NOT_STALE_CREATED_AT = new Date("2024-11-07T20:00:00+08:00");
+export function roomIsStale(room: { staledAt: Date | null; createdAt: Date }) {
+  return (
+    (room.staledAt !== null && room.staledAt < new Date()) ||
+    room.createdAt < EARLIEST_NOT_STALE_CREATED_AT
+  );
 }
 
 export const elysiaAuthPlugin = new Elysia({ name: "check-auth" })

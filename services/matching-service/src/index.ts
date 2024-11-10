@@ -1,12 +1,7 @@
 import { db } from "@peerprep/db";
-import { env } from "@peerprep/env";
 import type { Difficulty } from "@peerprep/schemas";
 import { questions } from "@peerprep/schemas/validators";
-import {
-  elysiaAuthPlugin,
-  elysiaCorsPlugin,
-  elysiaFormatResponsePlugin,
-} from "@peerprep/utils/server";
+import { elysiaAuthPlugin, elysiaFormatResponsePlugin } from "@peerprep/utils/server";
 import { Elysia, t } from "elysia";
 
 import { createRoom } from "~/controllers/rooms";
@@ -69,7 +64,6 @@ worker.addEventListener("message", async ({ data }: { data: WorkerResponse }) =>
 });
 
 const app = new Elysia()
-  .use(elysiaCorsPlugin)
   .use(elysiaFormatResponsePlugin)
   .use(elysiaAuthPlugin)
   .get("/status", () => new Response("Online"))
@@ -126,7 +120,7 @@ const app = new Elysia()
       worker.postMessage({ type: "remove", userId: ws.data.user.id });
     },
   })
-  .listen(env.VITE_MATCHING_SERVICE_PORT);
+  .listen(3000);
 
 function sendMessage(userId: string, message: ResponseMessage) {
   app.server?.publish(userId, getMessage(message));

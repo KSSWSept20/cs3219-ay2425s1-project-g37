@@ -25,7 +25,6 @@
     "prettier": "3.3.3",
     "prettier-plugin-packagejson": "2.5.3",
     "prettier-plugin-tailwindcss": "0.6.8",
-    "react-yjs": "^2.0.1",
     "turbo": "2.2.1",
     "turndown": "7.2.0",
     "typescript": "5.6.3"

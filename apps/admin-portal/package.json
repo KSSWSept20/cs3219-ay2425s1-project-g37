@@ -3,13 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build && cp serve.json dist/serve.json",
+    "build": "tsc -b && vite build && cp serve.json dist/serve.json && ln -snf \"`pwd`/dist\" dist/admin",
     "dev": "vite",
     "lint": "eslint .",
-    "start": "serve dist -l $VITE_PEERPREP_QUESTION_SPA_PORT"
+    "start": "serve dist"
   },
   "dependencies": {
-    "@peerprep/env": "workspace:*",
     "@peerprep/eslint-config": "workspace:*",
     "@peerprep/schemas": "workspace:*",
     "@peerprep/tsconfig": "workspace:*",

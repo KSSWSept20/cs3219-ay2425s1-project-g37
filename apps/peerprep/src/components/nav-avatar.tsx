@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 export function NavAvatar() {
   const { data: user } = useAuth();
   const { trigger } = useLogout();
+
   if (!user) return null;
   return (
     <DropdownMenu>
@@ -29,15 +30,22 @@ export function NavAvatar() {
             <div>Logged in as</div>
             <div className="max-w-full truncate text-base text-white">@{user.username}</div>
           </DropdownMenuLabel>
-          <DropdownMenuItem>View profile</DropdownMenuItem>
-          <DropdownMenuItem>User settings</DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/profile/settings">User settings</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/profile/history">History</Link>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         {user.isAdmin ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href={getOrigin("admin-portal")}>
+                <Link
+                  href={getOrigin("admin-portal")}
+                  className="flex w-full items-center justify-between"
+                >
                   Admin portal
                   <ArrowUpRight />
                 </Link>

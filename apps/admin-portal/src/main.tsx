@@ -18,37 +18,40 @@ import RegisterPage from "~/routes/register";
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found");
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <RootLayout />,
-    errorElement: <ErrorPage />,
-    children: [
-      {
-        element: <PublicNotAuthLayout />,
-        children: [
-          { path: "/login", element: <LoginPage /> },
-          { path: "/register", element: <RegisterPage /> },
-        ],
-      },
-      {
-        element: <AuthProtectedLayout />,
-        children: [
-          { index: true, element: <IndexPage /> },
-          { path: "/questions", element: <QuestionsPage /> },
-          {
-            path: "/questions/:id",
-            element: <QuestionLayout />,
-            children: [
-              { index: true, element: <QuestionPage /> },
-              { path: "edit", element: <QuestionEditPage /> },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <RootLayout />,
+      errorElement: <ErrorPage />,
+      children: [
+        {
+          element: <PublicNotAuthLayout />,
+          children: [
+            { path: "/login", element: <LoginPage /> },
+            { path: "/register", element: <RegisterPage /> },
+          ],
+        },
+        {
+          element: <AuthProtectedLayout />,
+          children: [
+            { index: true, element: <IndexPage /> },
+            { path: "/questions", element: <QuestionsPage /> },
+            {
+              path: "/questions/:id",
+              element: <QuestionLayout />,
+              children: [
+                { index: true, element: <QuestionPage /> },
+                { path: "edit", element: <QuestionEditPage /> },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  { basename: "/admin" },
+);
 
 createRoot(root).render(
   <StrictMode>

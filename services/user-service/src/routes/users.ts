@@ -7,6 +7,7 @@ import {
   createUser,
   deleteUser,
   getAllUsers,
+  getMatchingHistory,
   getUser,
   updateUser,
   updateUserPrivilege,
@@ -33,8 +34,17 @@ const protectedRoutes = new Elysia({ prefix: "/:id" })
       throw new ExpectedError("You may not perform this action", StatusCodes.UNAUTHORIZED);
   })
   .get("/", ({ params }) => getUser(params.id))
-  .patch("/", ({ params, body }) => updateUser(params.id, body), { body: users.updateSchema })
-  .delete("/", ({ params }) => deleteUser(params.id));
+  .patch(
+    "/",
+    async ({ params, user, body }) => {
+      if (body.isAdmin && !user?.isAdmin)
+        throw new ExpectedError("Only admins can set the isAdmin flag", StatusCodes.UNAUTHORIZED);
+      await updateUser(params.id, body);
+    },
+    { body: users.updateSchema },
+  )
+  .delete("/", ({ params }) => deleteUser(params.id))
+  .get("/history", ({ params }) => getMatchingHistory(params.id));
 
 const publicRoutes = new Elysia().use(elysiaAuthPlugin).post(
   "/",
