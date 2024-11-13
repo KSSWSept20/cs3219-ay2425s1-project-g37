@@ -34,6 +34,12 @@ export async function storeYDocToRoom(roomId: string, ydoc: Uint8Array) {
 }
 
 export async function scheduleRoomForInactivity(roomId: string) {
+  const data = await db.room.findUniqueOrThrow({
+    where: { id: roomId },
+    select: { staledAt: true, createdAt: true },
+  });
+  const alreadyStale = roomIsStale(data);
+  if (alreadyStale) return;
   const potentialStaleTime = new Date(Date.now() + 1000 * 60 * 60 * 6); // 6 hour
   await db.room.update({ where: { id: roomId }, data: { staledAt: potentialStaleTime } });
 }
@@ -49,7 +55,6 @@ export async function makeRoomActiveAgain(roomId: string, forced = false) {
   });
   const alreadyStale = roomIsStale(data);
   if (alreadyStale) return false;
-  console.log(`Making room ${roomId} active again`);
   await db.room.update({ where: { id: roomId }, data: { staledAt: null } });
   return true;
 }

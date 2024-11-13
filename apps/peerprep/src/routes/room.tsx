@@ -203,7 +203,7 @@ function LanguageSelector() {
   return (
     <Select
       disabled={readOnly}
-      value={isReady ? language || "javascript" : undefined}
+      value={isReady ? language || "cpp" : undefined}
       onValueChange={value => {
         ydoc.transact(() => {
           yLanguage.delete(0, yLanguage.length);
@@ -215,9 +215,25 @@ function LanguageSelector() {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="javascript">JavaScript</SelectItem>
-        <SelectItem value="python">Python</SelectItem>
+        <SelectItem value="cpp">C++</SelectItem>
         <SelectItem value="java">Java</SelectItem>
+        <SelectItem value="python">Python</SelectItem>
+        <SelectItem value="python3">Python3</SelectItem>
+        <SelectItem value="c">C</SelectItem>
+        <SelectItem value="csharp">C#</SelectItem>
+        <SelectItem value="javascript">JavaScript</SelectItem>
+        <SelectItem value="typescript">TypeScript</SelectItem>
+        <SelectItem value="php">PHP</SelectItem>
+        <SelectItem value="swift">Swift</SelectItem>
+        <SelectItem value="kotlin">Kotlin</SelectItem>
+        <SelectItem value="dart">Dart</SelectItem>
+        <SelectItem value="go">Go</SelectItem>
+        <SelectItem value="ruby">Ruby</SelectItem>
+        <SelectItem value="scala">Scala</SelectItem>
+        <SelectItem value="rust">Rust</SelectItem>
+        <SelectItem value="racket">Racket</SelectItem>
+        <SelectItem value="erlang">Erlang</SelectItem>
+        <SelectItem value="elixir">Elixir</SelectItem>
       </SelectContent>
     </Select>
   );
@@ -420,10 +436,24 @@ function Chat({ ai = false }: { ai?: boolean }) {
   );
 }
 
+function getMonacoLanguage(language: string) {
+  if (!language) return "cpp";
+  if (language === "python3") return "python";
+  return language;
+}
+
 function MainRoomPage() {
   const { room } = usePageData();
-  const { provider, readOnly, stylesheets, chatPending, clearChatPending, yCodeContent } =
-    useHocuspocus();
+  const {
+    provider,
+    readOnly,
+    stylesheets,
+    chatPending,
+    clearChatPending,
+    yCodeContent,
+    yLanguage,
+  } = useHocuspocus();
+  const language = useY(yLanguage) as unknown as string;
   const [tab, setTab] = useState("problem");
   return (
     <div className="flex h-screen w-screen flex-col px-6">
@@ -480,8 +510,7 @@ function MainRoomPage() {
             <Editor
               height="100%"
               theme="vs-dark"
-              defaultLanguage="javascript"
-              defaultValue="// some comment"
+              language={getMonacoLanguage(language)}
               options={{ readOnly }}
               onMount={editor => {
                 const editorModel = editor.getModel();
